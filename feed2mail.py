@@ -10,13 +10,16 @@ except ImportError:
     import pickle
 
 import feedparser
+import chardet
+
 from html2text import html2text
+html2text = (lambda func: lambda html: func(html).replace('\n', ' '))(html2text)
+
+import config
 
 HTTP_NOT_FOUND = 404
 HTTP_GONE = 410
 HTTP_MOVED_PERMANENTLY = 301
-
-from config import *
 
 
 def warn(feed_url, msg):
@@ -25,6 +28,46 @@ def warn(feed_url, msg):
 
 def log(msg):
     print msg
+
+class BufferedUnicode(object):
+    def __init__(self):
+        self._buf = []
+
+    def __iadd__(self, other):
+        try:
+            self._buf.append(unicode(other))
+            return self
+        except UnicodeDecodeError:
+            raise TypeError('Expected Unicode')
+
+    def as_unicode(self):
+        return u''.join(self._buf)
+
+def force_unicode(string):
+    if not string or isinstance(string, unicode):
+        return string
+    # first, try a few common encodings
+    for encoding in ('utf-8', 'iso-8859-15'):
+        try:
+            return string.decode(encoding)
+        except UnicodeDecodeError:
+            pass
+    # then, use chardet to detect the encoding.
+    result = chardet.detect(s)
+    if result is not None:
+        try:
+            return string.decode(result['encoding'])
+        except UnicodeDecodeError:
+            pass
+
+    # if *everything* fails, we can't do any more but
+    # ignore unknown characters. :(
+    return string.decode('utf-8', 'replace')
+
+def force_plaintext(element):
+    if 'html' in element.type:
+        return html2text(element.value)
+    return element.value
 
 def fetch_entries(feed_url, seen_entries):
     log('Fetching %r...' % feed_url)
@@ -52,15 +95,17 @@ def fetch_entries(feed_url, seen_entries):
             continue
         log('Got new entry %r' % entry.id)
         seen_entries.add(entry.id)
-        entry['feed_author'] = feed.feed.get('author')
-        entry['feed_title'] = feed.feed.get('title_detail')
+        try: entry['feed_author'] = feed.feed['author']
+        except KeyError: pass
+        try: entry['feed_title'] = feed.feed['title_detail']
+        except KeyError: pass
         yield entry
 
 def select_plaintext_body(entry):
     bodies = entry.get('content', []) + [entry.get('summary_detail')]
     bodies = filter(None, bodies)
     if not bodies:
-        return '(no body)'
+        return None
     for body in bodies:
         if body.type == 'text/plain':
             return body.value
@@ -68,13 +113,9 @@ def select_plaintext_body(entry):
 
 def select_plaintext_title(entry):
     try:
-        title = entry.title_detail.value
+        return force_plaintext(entry['title_detail'])
     except KeyError:
-        return
-    else:
-        if 'html' in entry.title_detail.type:
-            title = html2text(title).replace('\n', ' ')
-        return title
+        pass
 
 def select_timestamp(entry):
     for attr in ('updated', 'published', 'created'):
@@ -85,44 +126,71 @@ def select_timestamp(entry):
     return time.gmtime()
 
 def generate_mail_for_entry(entry):
-    body = select_plaintext_body(entry)
-    title = select_plaintext_title(entry) or body[50:] + '...'
+    # the entry's content:
+    body = force_unicode(select_plaintext_body(entry))
+    # the entry's title:
+    title = force_unicode(select_plaintext_title(entry))
+    # the date+time the entry was updated/published:
     timestamp = select_timestamp(entry)
-    feed_title = entry['feed_title'] or ''
-    if feed_title:
-        if 'html' in feed_title.type:
-            feed_title = html2text(feed_title.value).replace('\n', ' ')
-        else:
-            feed_title = feed_title.value
-    author = entry.get('author') or entry['feed_author'] or feed_title
-
+    # the entry's feed's title:
+    feed_title = force_unicode(force_plaintext(entry.get('feed_title')))
+    # the entry's author:
+    author = force_unicode(entry.get('author'))
+    # the feed's author:
+    feed_author = force_unicode(entry.get('feed_author'))
+    # files attached to the entry:
     enclosures = entry.get('enclosures', [])
-    if enclosures:
-        body += '\n\nEnclosures:\n'
-        for enclosure in enclosures:
-            body += '%s (%s, %s bytes)' % (
-                enclosure.href, enclosure.type, enclosure.type)
 
-    body = '%s\n\n%s' % (entry.link, body)
+    subject, author, body = format_mail(
+        entry.id, entry.link, title, timestamp, author,
+        body, feed_title, feed_author, enclosures
+    )
 
-    for codec in ('us-ascii', 'iso-8859-1', 'utf-8'):
-        try:
-            body = body.encode(codec)
-        except (UnicodeError, LookupError):
-            pass
-        else:
-            break
-    else:
-        codec = 'iso-8859-15'
-        body = body.encode('iso-8859-15', errors='ignore')
+    subject, author, body = map(force_unicode, (subject, author, body))
 
-    mail = email.mime.text.MIMEText(body, 'plain', codec)
-    mail['To'] = RECIPIENT_MAIL
+    mail = email.mime.text.MIMEText(body, 'plain', 'ISO-8859-15')
+    mail['To'] = config.RECIPIENT_MAIL
     mail['Subject'] = title
-    mail['From'] = email.utils.formataddr((author, SENDER_MAIL))
+    mail['From'] = email.utils.formataddr((author, config.SENDER_MAIL))
     mail['Date'] = email.utils.formatdate(time.mktime(timestamp))
     mail['X-RSS-Entry-ID'] = entry.id
     return mail
+
+def format_mail(id, link, title, timestamp, author, body,
+                feed_title, feed_author, enclosures):
+    if not title:
+        if body:
+            title = body[:70] + '...'
+        else:
+            title = link
+
+    if not author:
+        author = feed_author or ''
+
+    if feed_title:
+        title = feed_title + ': ' + title
+
+    content = BufferedUnicode()
+    content += title + '\n' + (link or id)
+    if enclosures:
+        content += '[%d enclosures]' % len(enclosures)
+
+    if body:
+        content += '\n\n'
+        content += body
+        content += '\n'
+
+    if enclosures:
+        content += '-' * 20
+        for enclosure in enclosures:
+            content += 'Enclosure: %s (Type: %s, Size: %d)' \
+                        % (enclosure.href, enclosure.type, enclosure.length)
+
+    return title, author, content.as_unicode()
+
+
+format_mail = getattr(config, 'format_mail', format_mail)
+
 
 def main():
     if os.path.exists('.seen'):
@@ -133,7 +201,7 @@ def main():
 
     mail_queue = []
 
-    for feed in FEEDS:
+    for feed in config.FEEDS:
         seen.setdefault(feed, set())
         for entry in fetch_entries(feed, seen[feed]):
             mail_queue.append(generate_mail_for_entry(entry))
@@ -141,7 +209,10 @@ def main():
     mails = len(mail_queue)
     sent = error = 0
     if mails:
-        smtp_server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        smtp_server = smtplib.SMTP(
+            config.SMTP_SERVER,
+            getattr(config, 'SMTP_PORT', None)
+        )
         for mail in mail_queue:
             log('Sending mail for entry %r...' % mail['X-RSS-Entry-ID'])
             try:
