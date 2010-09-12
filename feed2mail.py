@@ -105,7 +105,7 @@ def generate_mail_for_entry(entry):
 
     body = '%s\n\n%s' % (entry.link, body)
 
-    for codec in ('us-ascii', 'big5', 'iso-2022-jp', 'iso-8859-1', 'utf-8'):
+    for codec in ('us-ascii', 'iso-8859-1', 'utf-8'):
         try:
             body = body.encode(codec)
         except (UnicodeError, LookupError):
@@ -137,15 +137,21 @@ def main():
         for entry in fetch_entries(feed, seen[feed]):
             mail_queue.append(generate_mail_for_entry(entry))
 
-    if mail_queue:
+    mails = len(mail_queue)
+    sent = error = 0
+    if mails:
         smtp_server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
         for mail in mail_queue:
             log('Sending mail for entry %r...' % mail['X-RSS-Entry-ID'])
             try:
                 smtp_server.sendmail(SENDER_MAIL, RECIPIENT_MAIL, mail.as_string())
+                sent += 1
             except:
                 import traceback
                 traceback.print_exc()
+                error += 1
+
+    print 'Sent %d of %d mails (%d errors)' % (sent, mails, error)
 
     with open('.seen', 'w') as fobj:
         pickle.dump(seen, fobj)
