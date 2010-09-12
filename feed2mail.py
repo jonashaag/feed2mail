@@ -30,6 +30,14 @@ def log(msg):
     print msg
 
 class BufferedUnicode(object):
+    """
+    Simple pseudo unicode string. StringIO wasn't worth importing.
+    >>> buf = BufferedUnicode()
+    >>> buf += 'hello'
+    >>> buf += u' world!'
+    >>> buf.as_unicode()
+    'hello world!'
+    """
     def __init__(self):
         self._buf = []
 
@@ -38,12 +46,18 @@ class BufferedUnicode(object):
             self._buf.append(unicode(other))
             return self
         except UnicodeDecodeError:
-            raise TypeError('Expected Unicode')
+            raise TypeError('Expected unicode')
 
     def as_unicode(self):
         return u''.join(self._buf)
 
 def force_unicode(string):
+    """
+    Returns `string`, converted to unicode.
+
+    (If `string` is ``None`` or already of type `unicode`,
+     returns it without any conversion applied.)
+    """
     if not string or isinstance(string, unicode):
         return string
     # first, try a few common encodings
@@ -102,6 +116,13 @@ def fetch_entries(feed_url, seen_entries):
         yield entry
 
 def select_plaintext_body(entry):
+    """
+    Returns the first plaintext body that can be found in `entry`,
+    or the first HTML body converted to plaintext using ``html2text``
+    of none was found.
+
+    Returns ``None`` if no bodies are found at all.
+    """
     bodies = entry.get('content', []) + [entry.get('summary_detail')]
     bodies = filter(None, bodies)
     if not bodies:
@@ -112,12 +133,20 @@ def select_plaintext_body(entry):
     return html2text(bodies[0].value)
 
 def select_plaintext_title(entry):
+    """
+    Returns the entry's title, converted to plaintext if needed,
+    or ``None`` if no title is found.
+    """
     try:
         return force_plaintext(entry['title_detail'])
     except KeyError:
         pass
 
 def select_timestamp(entry):
+    """
+    Returns the date and time `entry` was updated, published or created
+    (respectively) as a time-tuple.
+    """
     for attr in ('updated', 'published', 'created'):
         try:
             return entry['%s_parsed'] % attr
@@ -158,6 +187,14 @@ def generate_mail_for_entry(entry):
 
 def format_mail(id, link, title, timestamp, author, body,
                 feed_title, feed_author, enclosures):
+    """
+    Returns a `(subject, author, body)` tuple, forming the mail's
+    Subject and From headers and the mail's body, respectively.
+
+    All arguments passed expect for `id` and `timestamp` can be ``None``.
+
+    The returned tuple's items *must* be strings (they can be empty, though).
+    """
     if not title:
         if body:
             title = body[:70] + '...'
