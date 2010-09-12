@@ -116,7 +116,7 @@ def generate_mail_for_entry(entry):
         codec = 'iso-8859-15'
         body = body.encode('iso-8859-15', errors='ignore')
 
-    mail = email.mime.text.MIMEText(body.encode(ENCODING), 'plain', codec)
+    mail = email.mime.text.MIMEText(body, 'plain', codec)
     mail['To'] = RECIPIENT_MAIL
     mail['Subject'] = title
     mail['From'] = email.utils.formataddr((author, SENDER_MAIL))
