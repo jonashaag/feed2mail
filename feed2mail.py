@@ -183,8 +183,12 @@ def format_mail(id, link, title, timestamp, author, body,
     if enclosures:
         content += '-' * 20
         for enclosure in enclosures:
+            try:
+                length = int(float(enclosure.length))
+            except ValueError:
+                length = -1
             content += 'Enclosure: %s (Type: %s, Size: %d)' \
-                        % (enclosure.href, enclosure.type, enclosure.length)
+                        % (enclosure.href, enclosure.type, length)
 
     return title, author, content.as_unicode()
 
