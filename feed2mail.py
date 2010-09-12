@@ -224,7 +224,11 @@ def main():
         for mail in mail_queue:
             log('Sending mail for entry %r...' % mail['X-RSS-Entry-ID'])
             try:
-                smtp_server.sendmail(SENDER_MAIL, RECIPIENT_MAIL, mail.as_string())
+                smtp_server.sendmail(
+                    config.SENDER_MAIL,
+                    config.RECIPIENT_MAIL,
+                    mail.as_string()
+                )
                 sent += 1
             except:
                 import traceback
