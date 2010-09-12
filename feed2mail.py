@@ -202,8 +202,12 @@ def main():
     mail_queue = []
 
     for feed in config.FEEDS:
-        seen.setdefault(feed, set())
-        for entry in fetch_entries(feed, seen[feed]):
+        if isinstance(feed, (list, tuple)):
+            feed, feed_id = feed
+        else:
+            feed_id = feed
+        seen.setdefault(feed_id, set())
+        for entry in fetch_entries(feed, seen[feed_id]):
             mail_queue.append(generate_mail_for_entry(entry))
 
     mails = len(mail_queue)
