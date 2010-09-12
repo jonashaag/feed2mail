@@ -15,7 +15,6 @@ from html2text import html2text
 HTTP_NOT_FOUND = 404
 HTTP_GONE = 410
 HTTP_MOVED_PERMANENTLY = 301
-ENCODING = 'ISO-8859-15'
 
 from config import *
 
@@ -46,6 +45,8 @@ def fetch_entries(feed_url, seen_entries):
         warn(feed_url, 'has permanently moved to %r' % feed.href)
 
     for entry in feed.entries:
+        if 'id' not in entry:
+            entry.id = entry.link
         if entry.id in seen_entries:
             log('Already saw entry %r' % entry.id)
             continue
@@ -104,7 +105,18 @@ def generate_mail_for_entry(entry):
 
     body = '%s\n\n%s' % (entry.link, body)
 
-    mail = email.mime.text.MIMEText(body.encode(ENCODING), 'plain', ENCODING)
+    for codec in ('us-ascii', 'big5', 'iso-2022-jp', 'iso-8859-1', 'utf-8'):
+        try:
+            body = body.encode(codec)
+        except (UnicodeError, LookupError):
+            pass
+        else:
+            break
+    else:
+        codec = 'iso-8859-15'
+        body = body.encode('iso-8859-15', errors='ignore')
+
+    mail = email.mime.text.MIMEText(body.encode(ENCODING), 'plain', codec)
     mail['To'] = RECIPIENT_MAIL
     mail['Subject'] = title
     mail['From'] = email.utils.formataddr((author, SENDER_MAIL))
