@@ -130,6 +130,7 @@ def main():
             seen = pickle.load(fobj)
     else:
         seen = {}
+
     mail_queue = []
 
     for feed in FEEDS:
@@ -151,7 +152,8 @@ def main():
                 traceback.print_exc()
                 error += 1
 
-    print 'Sent %d of %d mails (%d errors)' % (sent, mails, error)
+    log('-' * 20)
+    log('Sent %d of %d mails (%d errors)' % (sent, mails, error))
 
     with open('.seen', 'w') as fobj:
         pickle.dump(seen, fobj)
