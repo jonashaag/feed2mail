@@ -150,7 +150,7 @@ def generate_mail_for_entry(entry):
 
     mail = email.mime.text.MIMEText(body, 'plain', 'ISO-8859-15')
     mail['To'] = config.RECIPIENT_MAIL
-    mail['Subject'] = title
+    mail['Subject'] = subject
     mail['From'] = email.utils.formataddr((author, config.SENDER_MAIL))
     mail['Date'] = email.utils.formatdate(time.mktime(timestamp))
     mail['X-RSS-Entry-ID'] = entry.id
@@ -164,11 +164,11 @@ def format_mail(id, link, title, timestamp, author, body,
         else:
             title = link
 
-    if not author:
-        author = feed_author or ''
-
     if feed_title:
-        title = feed_title + ': ' + title
+        author = feed_title
+    else:
+        if not author:
+            author = feed_author or ''
 
     content = BufferedUnicode()
     content += title + '\n' + (link or id)
