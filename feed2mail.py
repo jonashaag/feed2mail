@@ -224,7 +224,7 @@ def format_mail(id, link, title, timestamp, author, body,
                 length = int(float(enclosure.length))
             except ValueError:
                 length = -1
-            content += 'Enclosure: %s (Type: %s, Size: %d)' \
+            content += '\nEnclosure: %s (%s, %d bytes)' \
                         % (enclosure.href, enclosure.type, length)
 
     return title, author, content.as_unicode()

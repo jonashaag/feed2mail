@@ -34,4 +34,4 @@ Great! `Please open a ticket`_.
 
 License?
 ~~~~~~~~
-GPL, Version 2 or greater
+GPL, version 2 or greater
