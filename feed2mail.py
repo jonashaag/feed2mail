@@ -150,7 +150,7 @@ def generate_mail_for_entry(entry):
         body, feed_title, feed_author, enclosures
     )
 
-    mail = email.mime.text.MIMEText(body, 'plain', 'ISO-8859-15')
+    mail = email.mime.text.MIMEText(body, 'plain', 'utf-8')
     mail['To'] = config.RECIPIENT_MAIL
     mail['Subject'] = subject
     mail['From'] = email.utils.formataddr((author, config.SENDER_MAIL))
