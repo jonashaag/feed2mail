@@ -74,6 +74,7 @@ def fetch_entries(feed_url, seen_entries):
 
     for entry in feed.entries:
         if 'id' not in entry:
+            assert entry.link
             entry.id = entry.link
         if entry.id in seen_entries:
             log('Already saw entry %r' % entry.id)
@@ -130,10 +131,12 @@ def select_timestamp(entry):
 
 
 def generate_mail_for_entry(entry):
-    # the entry's content:
-    body = select_plaintext_body(entry)
     # the entry's title:
     title = select_plaintext_title(entry)
+    # the entry's content:
+    body = select_plaintext_body(entry)
+    # the entry's permalink
+    link = entry.get('link', entry.id)
     # the date+time the entry was updated/published:
     timestamp = select_timestamp(entry)
     # the entry's feed's title:
@@ -146,8 +149,15 @@ def generate_mail_for_entry(entry):
     enclosures = entry.get('enclosures', [])
 
     subject, author, body = format_mail(
-        entry.id, entry.link, title, timestamp, author,
-        body, feed_title, feed_author, enclosures
+        entry.id,
+        link,
+        title,
+        timestamp,
+        author,
+        body,
+        feed_title,
+        feed_author,
+        enclosures,
     )
 
     mail = email.mime.text.MIMEText(body, 'plain', 'utf-8')
@@ -196,7 +206,7 @@ def format_mail(id, link, title, timestamp, author, body,
         for enclosure in enclosures:
             try:
                 length = int(float(enclosure.length))
-            except ValueError:
+            except (ValueError, AttributeError):
                 length = -1
             content += '\nEnclosure: %s (%s, %d bytes)' \
                         % (enclosure.href, enclosure.type, length)
