@@ -12,11 +12,6 @@ import html2text
 import config
 
 
-HTTP_NOT_FOUND = 404
-HTTP_GONE = 410
-HTTP_MOVED_PERMANENTLY = 301
-
-
 def warn(feed_url, msg):
     print >> sys.stderr, \
         'WARNING: [%s] %s' % (feed_url, msg)
@@ -64,13 +59,9 @@ def fetch_entries(feed_url, seen_entries):
 
     if feed.bozo:
         warn(feed_url, feed.bozo_exception)
-        return
 
-    if str(feed.status)[0] in ('4', '5'):
-        warn(feed_url, 'unknown HTTP status code %d' % feed.status)
-
-    if feed.status == HTTP_MOVED_PERMANENTLY:
-        warn(feed_url, 'has permanently moved to %r' % feed.href)
+        if 400 <= feed.get('status', 404) < 600:
+            return
 
     for entry in feed.entries:
         if 'id' not in entry:
