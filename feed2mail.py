@@ -1,21 +1,16 @@
+""" Copyright 2010-2013 Jonas Haag <jonas@lophus.org>. ISC-licensed.  """
 import os
 import sys
 import time
-import hashlib
 import smtplib
 import email, email.utils, email.mime.text
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
+import pickle
 
 import feedparser
-import chardet
-
-from html2text import html2text
-html2text = (lambda func: lambda html: func(html).replace('\n', ' '))(html2text)
+import html2text
 
 import config
+
 
 HTTP_NOT_FOUND = 404
 HTTP_GONE = 410
@@ -28,6 +23,7 @@ def warn(feed_url, msg):
 
 def log(msg):
     print msg
+
 
 class BufferedUnicode(object):
     """
@@ -51,48 +47,23 @@ class BufferedUnicode(object):
     def as_unicode(self):
         return u''.join(self._buf)
 
-def force_unicode(string):
-    """
-    Returns `string`, converted to unicode.
 
-    (If `string` is ``None`` or already of type `unicode`,
-     returns it without any conversion applied.)
-    """
-    if not string or isinstance(string, unicode):
-        return string
-    # first, try a few common encodings
-    for encoding in ('utf-8', 'iso-8859-15'):
-        try:
-            return string.decode(encoding)
-        except UnicodeDecodeError:
-            pass
-    # then, use chardet to detect the encoding.
-    result = chardet.detect(s)
-    if result is not None:
-        try:
-            return string.decode(result['encoding'])
-        except UnicodeDecodeError:
-            pass
+def my_html2text(s):
+    return html2text.html2text(s.replace('\n', ' '))
 
-    # if *everything* fails, we can't do any more but
-    # ignore unknown characters. :(
-    return string.decode('utf-8', 'replace')
 
 def force_plaintext(element):
     if 'html' in element.type:
-        return html2text(element.value)
+        return my_html2text(element.value)
     return element.value
+
 
 def fetch_entries(feed_url, seen_entries):
     log('Fetching %r...' % feed_url)
     feed = feedparser.parse(feed_url)
 
-    if feed.status == HTTP_NOT_FOUND:
-        warn(feed_url, 'not found')
-        return
-
-    if feed.status == HTTP_GONE:
-        warn(feed_url, 'is gone')
+    if feed.bozo:
+        warn(feed_url, feed.bozo_exception)
         return
 
     if str(feed.status)[0] in ('4', '5'):
@@ -115,6 +86,7 @@ def fetch_entries(feed_url, seen_entries):
         except KeyError: pass
         yield entry
 
+
 def select_plaintext_body(entry):
     """
     Returns the first plaintext body that can be found in `entry`,
@@ -130,7 +102,8 @@ def select_plaintext_body(entry):
     for body in bodies:
         if body.type == 'text/plain':
             return body.value
-    return html2text(bodies[0].value)
+    return my_html2text(bodies[0].value)
+
 
 def select_plaintext_title(entry):
     """
@@ -141,6 +114,7 @@ def select_plaintext_title(entry):
         return force_plaintext(entry['title_detail'])
     except KeyError:
         pass
+
 
 def select_timestamp(entry):
     """
@@ -154,19 +128,20 @@ def select_timestamp(entry):
             pass
     return time.gmtime()
 
+
 def generate_mail_for_entry(entry):
     # the entry's content:
-    body = force_unicode(select_plaintext_body(entry))
+    body = select_plaintext_body(entry)
     # the entry's title:
-    title = force_unicode(select_plaintext_title(entry))
+    title = select_plaintext_title(entry)
     # the date+time the entry was updated/published:
     timestamp = select_timestamp(entry)
     # the entry's feed's title:
-    feed_title = force_unicode(force_plaintext(entry.get('feed_title')))
+    feed_title = force_plaintext(entry.get('feed_title'))
     # the entry's author:
-    author = force_unicode(entry.get('author'))
+    author = entry.get('author')
     # the feed's author:
-    feed_author = force_unicode(entry.get('feed_author'))
+    feed_author = entry.get('feed_author')
     # files attached to the entry:
     enclosures = entry.get('enclosures', [])
 
@@ -175,8 +150,6 @@ def generate_mail_for_entry(entry):
         body, feed_title, feed_author, enclosures
     )
 
-    subject, author, body = map(force_unicode, (subject, author, body))
-
     mail = email.mime.text.MIMEText(body, 'plain', 'ISO-8859-15')
     mail['To'] = config.RECIPIENT_MAIL
     mail['Subject'] = subject
@@ -184,6 +157,7 @@ def generate_mail_for_entry(entry):
     mail['Date'] = email.utils.formatdate(time.mktime(timestamp))
     mail['X-RSS-Entry-ID'] = entry.id
     return mail
+
 
 def format_mail(id, link, title, timestamp, author, body,
                 feed_title, feed_author, enclosures):

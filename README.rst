@@ -12,19 +12,17 @@ rss2email had some unicode bug. I tried to fix it but I couldn't because I
 vomited and fainted when I saw the code. 
 So I wrote this clone with simplicity and beauty in mind.
 
+How to install
+~~~~~~~~~~~~~~
+::
+
+   pip install html2text chardet feedparser
+
 How to use it?
 ~~~~~~~~~~~~~~
 1. ``cp example_config.py config.py``.
 2. edit `config.py`.
 3. run `feed2mail.py` every *N* seconds/hours/decades.
-
-Dependencies?
-~~~~~~~~~~~~~
-Only Mark Pilgrim's `Universal Feed Parser`_ and `Universal Encoding Detector`_,
-for parsing the feeds.
-
-.. _Universal Feed Parser: http://feedparser.org
-.. _Universal Encoding Detector: http://chardet.feedparser.org
 
 I've found a bug!
 ~~~~~~~~~~~~~~~~~
@@ -34,4 +32,4 @@ Great! `Please open a ticket`_.
 
 License?
 ~~~~~~~~
-GPL, version 2 or greater
+ISC
