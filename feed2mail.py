@@ -12,9 +12,9 @@ import html2text
 import config
 
 
-def warn(feed_url, msg):
+def warn(feed_url, status, msg):
     print >> sys.stderr, \
-        'WARNING: [%s] %s' % (feed_url, msg)
+        'WARNING: %s HTTP %d: %s' % (feed_url, status, msg)
 
 def log(msg):
     print msg
@@ -58,9 +58,10 @@ def fetch_entries(feed_url, seen_entries):
     feed = feedparser.parse(feed_url)
 
     if feed.bozo:
-        warn(feed_url, feed.bozo_exception)
-
-        if 400 <= feed.get('status', 404) < 600:
+        status = feed.get('status', 404)
+        if status != 200:
+            warn(feed_url, status, feed.bozo_exception)
+        if 400 <= status < 600:
             return
 
     for entry in feed.entries:
