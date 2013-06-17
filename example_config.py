@@ -1,6 +1,7 @@
 SENDER_MAIL     = 'send@er.tld'
 RECIPIENT_MAIL  = 'rec@ipient.tld'
 SMTP_SERVER     = 'ser.ver.tld'
+SMTP_USE_TLS    = False
 SMTP_PORT       = None # can be absent/set to None for the default value
 
 # A list of feeds to fetch.

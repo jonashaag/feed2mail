@@ -16,7 +16,7 @@ How to install
 ~~~~~~~~~~~~~~
 ::
 
-   pip install html2text chardet feedparser
+   pip install html2text feedparser
 
 How to use it?
 ~~~~~~~~~~~~~~
