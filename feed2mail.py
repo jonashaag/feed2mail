@@ -238,7 +238,7 @@ def main():
             config.SMTP_SERVER,
             getattr(config, 'SMTP_PORT', None)
         )
-        if getttr(config, 'SMTP_USE_TLS', False):
+        if getattr(config, 'SMTP_USE_TLS', False):
             smtp_server.starttls()
         for mail in mail_queue:
             log('Sending mail for entry %r...' % mail['X-RSS-Entry-ID'])
