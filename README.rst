@@ -6,6 +6,8 @@ Delivers news from feeds (RSS, Atom, ...) to your mail box.
 
 How to install
 ~~~~~~~~~~~~~~
+Simply check out the Git repository or download the Python file.
+
 Dependencies::
 
    pip install html2text feedparser
