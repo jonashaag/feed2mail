@@ -2,19 +2,11 @@ feed2mail
 ---------
 rss2email done simple.
 
-What is it?
-~~~~~~~~~~~
-It's a tool that delivers news from feeds (RSS, Atom, ...) to your mail box.
-
-Why?
-~~~~
-rss2email had some unicode bug. I tried to fix it but I couldn't because I
-vomited and fainted when I saw the code. 
-So I wrote this clone with simplicity and beauty in mind.
+Delivers news from feeds (RSS, Atom, ...) to your mail box.
 
 How to install
 ~~~~~~~~~~~~~~
-::
+Dependencies::
 
    pip install html2text feedparser
 
