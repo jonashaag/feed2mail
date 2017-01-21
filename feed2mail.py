@@ -1,4 +1,4 @@
-""" Copyright 2010-2013 Jonas Haag <jonas@lophus.org>. ISC-licensed.  """
+""" Copyright 2010-2017 Jonas Haag <jonas@lophus.org>. ISC-licensed.  """
 import os
 import sys
 import time
@@ -190,7 +190,7 @@ def format_mail(id, link, title, timestamp, author, body,
     content = BufferedUnicode()
     content += title + '\n' + (link or id)
     if enclosures:
-        content += '[%d enclosures]' % len(enclosures)
+        content += ' [%d enclosures]' % len(enclosures)
 
     if body:
         content += '\n\n'
