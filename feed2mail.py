@@ -240,6 +240,11 @@ def main():
         )
         if getattr(config, 'SMTP_USE_TLS', False):
             smtp_server.starttls()
+        if hasattr(config, 'SMTP_USERNAME') or hasattr(config, 'SMTP_PASSWORD'):
+            smtp_server.login(
+                getattr(config, 'SMTP_USERNAME', None),
+                getattr(config, 'SMTP_PASSWORD', None)
+            )
         for mail in mail_queue:
             log('Sending mail for entry %r...' % mail['X-RSS-Entry-ID'])
             try:
