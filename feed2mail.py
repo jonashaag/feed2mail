@@ -134,7 +134,7 @@ def generate_mail_for_entry(entry):
     # the entry's feed's title:
     feed_title = force_plaintext(entry.get('feed_title'))
     # the entry's author:
-    author = entry.get('author')
+    author = entry.get('author').strip()
     # the feed's author:
     feed_author = entry.get('feed_author')
     # files attached to the entry:
@@ -162,7 +162,8 @@ def generate_mail_for_entry(entry):
     mail['From'] = email.utils.formataddr((author, config.SENDER_MAIL))
     mail['Date'] = email.utils.formatdate(time.mktime(timestamp))
     mail['X-RSS-Entry-ID'] = entry.id
-    return mail
+
+    return entry.id, mail.as_string().replace('\n', '\r\n')
 
 
 def format_mail(id, link, title, timestamp, author, body,
@@ -207,7 +208,7 @@ def format_mail(id, link, title, timestamp, author, body,
             content += '\nEnclosure: %s (%s, %d bytes)' \
                         % (enclosure.href, enclosure.type, length)
 
-    return title, author, content.as_unicode()
+    return title.strip(), author.strip(), content.as_unicode()
 
 
 format_mail = getattr(config, 'format_mail', format_mail)
@@ -245,13 +246,13 @@ def main():
                 getattr(config, 'SMTP_USERNAME', None),
                 getattr(config, 'SMTP_PASSWORD', None)
             )
-        for mail in mail_queue:
-            log('Sending mail for entry %r...' % mail['X-RSS-Entry-ID'])
+        for entry_id, mail in mail_queue:
+            log('Sending mail for entry %r...' % entry_id)
             try:
                 smtp_server.sendmail(
                     config.SENDER_MAIL,
                     config.RECIPIENT_MAIL,
-                    mail.as_string()
+                    mail,
                 )
                 sent += 1
             except:
