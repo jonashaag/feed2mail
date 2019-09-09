@@ -134,7 +134,7 @@ def generate_mail_for_entry(entry):
     # the entry's feed's title:
     feed_title = force_plaintext(entry.get('feed_title'))
     # the entry's author:
-    author = entry.get('author').strip()
+    author = (entry.get('author') and entry.get('author').strip() or None)
     # the feed's author:
     feed_author = entry.get('feed_author')
     # files attached to the entry:
@@ -158,8 +158,8 @@ def generate_mail_for_entry(entry):
         'utf-8'
     )
     mail['To'] = config.RECIPIENT_MAIL
-    mail['Subject'] = subject
-    mail['From'] = email.utils.formataddr((author, config.SENDER_MAIL))
+    mail['Subject'] = author + ': ' + subject
+    mail['From'] = config.SENDER_MAIL
     mail['Date'] = email.utils.formatdate(time.mktime(timestamp))
     mail['X-RSS-Entry-ID'] = entry.id
 
