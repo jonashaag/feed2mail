@@ -215,8 +215,10 @@ format_mail = getattr(config, 'format_mail', format_mail)
 
 
 def main():
-    if os.path.exists('.seen'):
-        with open('.seen', 'r') as fobj:
+    SEEN_FILE = os.environ.get('SEEN_FILE', '.seen')
+
+    if os.path.exists(SEEN_FILE):
+        with open(SEEN_FILE, 'r') as fobj:
             seen = pickle.load(fobj)
     else:
         seen = {}
@@ -263,7 +265,7 @@ def main():
     log('-' * 20)
     log('Sent %d of %d mails (%d errors)' % (sent, mails, error))
 
-    with open('.seen', 'w') as fobj:
+    with open(SEEN_FILE, 'w') as fobj:
         pickle.dump(seen, fobj)
 
 if __name__ == '__main__':
