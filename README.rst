@@ -13,7 +13,7 @@ Simply check out the Git repository or download the Python file.
 
    docker build -t feed2mail .
 
-**Alternatively, manual virtualeny**::
+**Alternatively, manual virtualenv**::
 
    pip install html2text feedparser
 
