@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """ Copyright 2010-2017 Jonas Haag <jonas@lophus.org>. ISC-licensed.  """
 import os
 import sys
